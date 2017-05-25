@@ -1,88 +1,89 @@
-"""
-2017
-Synchon Mandal
-"""
 #!/usr/local/bin/python3.6
+'''
+Synchon Mandal
+2017
+'''
 
-import os, sys, datetime, time, computation
-#from multiprocessing import Pool
+import sys, os, getopt
+from Bio import Entrez, SeqIO
+from Bio.SeqRecord import SeqRecord
+
+#global variables
+RootPath = os.getcwd()
+email_id = ""
+accession_id = ""
 
 def usage():
-        sys.stderr.write("Usage: python3 main.py <input_file> <mutation: mut/no-mut>\n")
+        print('Usage: ./main.py -a accession-number -e email-id\n')
+        print('-h --help               - check the available options\n')
+        print('-a --accession_id=id    - NCBI accession number\n')
+        print('-e --email_id=email     - NCBI registered email-id\n')
+        print('Example:\n')
+        print('python3 main.py -a 123ABC -e abc@efg.syz\n')
         sys.exit(0)
 
-def main():
+def commandLineArgumentCheck():
+    '''checks for command-line arguments and performs necessary opearation'''
+    if not len(sys.argv) > 1 :
+         usage()
 
-    #defines the root directory path
-    rootPath = os.getcwd()
-    #sets the output file name
-    OutputFileName = InputFileName + str(datetime.datetime.now())
-    os.makedirs(rootPath + f'/output/{OutputFileName}')
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],'ha:e:',['help','local_file=','accession_id=','email_id='])
+    except getopt.GetoptError as err:
+        sys.stderr.write(err)
+        usage()
 
-    #CODON GENERATION
-    #runs the sorting function for codon conversion
-    print('\nSorting the genome file...')
-    StartTimeOfSorting = time.time()
-    sortedTuple = computation.sortTextFile(fileName=IutputFileName)
-    print (f'\nTotal number of codons: {len(sortedTuple)}')
-    totalTimeOfSorting: float = round(time.time() - StartTimeOfSorting, 3)
-    print(f'\nSorted.\nTotal time required for sorting: {totalTimeOfSorting} seconds.\n==========================================')
-
-
-    #CONVERSION TO AMINO ACID
-    #runs the computation function for the data obtained
-    print('\nTranslating into amino acids...')
-    startTimeOfTranslating: float = time.time()
-    oneLetterTuple: Tuple = computation.makeCodonFromSortedFile(codonTuple=sortedTuple)
-    totalTimeOfTranslating: float = round(time.time() - startTimeOfTranslating, 3)
-    print(f'\nTranslated.\nTotal time required for translating: {totalTimeOfTranslating} seconds.\n==========================================')
-
-
-    #TXT GENERATION
-    #writes the data into a .txt file
-    computation.renderTextFile(fileName=OutputFileName,aminoAcidSequence=oneLetterTuple)
-    print('\n.txt file generated! Check the output/txt directory.\n==========================================\nMutation Analysis')
-
-
-    #MUTATION
-    #muatation computation
-    if responseForMutation == 'no-mut':
-        pass
-
-    elif responseForMutation == 'mut':
-        #prints out the data obtained for further processing
-        #TABLE
-        computation.viewTableOfAminoAcid(aminoAcidSequence=oneLetterTuple)
-
-        #accepts the position number(s) and amino acid(s)
-        positionNumbers: Tuple = tuple(input('\nPlease provide the position number(s) separated by commas:\n').split(','))
-        positionRequiredAminoAcids: Tuple = tuple(input('\nPlease enter the required amino acid(s) separated by commas:\n').split(','))
-        print('\n==========================================')
-        #returns the mutation results
-        positionCodon, positionAminoAcid, finalMutatedAminoAcidDictionary = computation.userDefinedMutation(DNASequence=sortedTuple,aminoAcidSequence=oneLetterTuple,positionNumbersOfAminoAcids=positionNumbers,positionRequiredMutatedAminoAcids=positionRequiredAminoAcids)
-
-        #error checking
-        if positionCodon == None or positionAminoAcid == None or finalMutatedAminoAcidDictionary == None:
-            return
+    for o,a in opts:
+        if o in ("-h","--help"):
+            usage()
+        elif o in ("-a","--accession_id"):
+            global accession_id
+            accession_id = a
+            if os.path.exists(RootPath + f'input/{accession_id}'):
+                writeProteinSequenceToFile(convertDNAtoProtein(localFileParsing(file_name=accession_id)))
+            else:
+                writeProteinSequenceToFile(convertDNAtoProtein(onlineEntrezSearch(handle_id=accession_id)))
+        elif o in ("-e","--email_id"):
+            email_id = a
         else:
-            #WORKSHEET GENERATION
-            #renders the worksheet file
-            computation.renderWorksheetOfUserDefinedMutation(fileName=OutputFileName,DNAdictionary=positionCodon,AminoAcidDictonary=positionAminoAcid,MutatedAminoAcidDictionary=finalMutatedAminoAcidDictionary)
-            print('\nWorksheet generated! Check the output/userDefinedMutationWorksheet directory.\n==========================================')
+            assert False,"Unhandled Option"
 
-    #DATASET ANALYSIS
-    #analyses, operates and plots the Dataset file
-    dictOfCount, dictOfPosition, aminoAcid, mutatedAminoAcid, mutatedNucleotide, occurences, position = computation.analysisForMutationDataset(fileName=IutputFileName)
-    nucleotide = computation.renderWorksheetForMutationDatasetAnalysis(fileName=IutputFileName,outputxlsxFile=OutputFileName,countDictionary=dictOfCount,positionDictionary=dictOfPosition)
-    print('\nDataset Analysis worksheet generated! Check the output/datasetWorksheet directory.\n==========================================')
-    computation.plotGraphForMutationDatasetAnalysis(fileName=OutputFileName,aminoAcidList=aminoAcid,mutatedAminoAcidList=mutatedAminoAcid,nucleotideAnalysisList=nucleotide,mutatedNucleotideAnalysisList=mutatedNucleotide,occurencesList=occurences,positionList=position)
-    print(f'\nDataset Analysis graph generated! Check the output/datasetAnalysisGraph/{OutputFileName} directory.\nDone.\n==========================================')
+def onlineEntrezSearch(handle_id):
+    '''searches the Entrez database and returns the result'''
+    global email_id
+    Entrez.email = email_id
+    handle = Entrez.efetch(db='nucleotide', rettype='fasta', retmode='text', id =f'{handle_id}')
+    seq_record = SeqIO.read(handle, 'fasta')
+    handle.close()
+    return seq_record.seq
+
+def localFileParsing(file_name):
+    '''parses the local file stored in the /input directory'''
+    global RootPath
+    os.chdir(RootPath + f'/input/{file_name}')
+    seq_record = SeqIO.read(f'{file_name}.fasta','fasta')
+    os.chdir(RootPath)
+    return seq_record.seq
+
+def convertDNAtoProtein(dna):
+    '''translates the DNA to Protein'''
+    protein = SeqRecord(dna.translate())
+    # print(f'No. of codons: {len(protein)}')
+    return protein
+
+def writeProteinSequenceToFile(protein):
+    '''writes a fasta file in the /output directory'''
+    global RootPath
+    global accession_id
+    outputPath = RootPath + f'/output/{accession_id}'
+    if not os.path.exists(outputPath):
+        os.makedirs(outputPath)
+    os.chdir(RootPath + f'/output/{accession_id}')
+    seq_record = SeqIO.write(protein,f'{accession_id.lower()}_output.fasta','fasta')
+    os.chdir(RootPath)
+
+def main():
+    commandLineArgumentCheck()
 
 if __name__ == '__main__':
-    #command-line argument check
-    if len(sys.argv) < 3:
-        usage()
-    else:
-        IutputFileName: str = str(sys.argv[1]).upper()
-        responseForMutation: str = str(sys.argv[2]).lower()
-        main()
+    main()
