@@ -1,5 +1,4 @@
 # Codon Usage Bias and Mutation Prediction
----
 ## Requires python 3.x
 
 1. Installing package:
