@@ -58,7 +58,7 @@ def perform_search_for_accession_id(handle_id):
     global root_path
     global email_id
 
-    if os.path.exists(root_path + f'/input/{accession_id}'):
+    if os.path.exists(root_path + f'/input/{accession_id}/{accession_id}.fasta'):
         # path change and data extraction (offline)
         os.chdir(root_path + f'/input/{handle_id}')
         seq_record = SeqIO.read(f'{handle_id}.fasta','fasta')

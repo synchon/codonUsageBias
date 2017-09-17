@@ -1,5 +1,5 @@
 # Codon Usage Bias and Mutation Prediction
-## Requires python 3.x
+### Requires python 3.x (conda distribution recommended)
 
 1. Installing package:
 	Open a terminal and type `sh install.sh`
@@ -18,5 +18,5 @@
 	Check the /output for the required directory.
 
 NOTE:
-### The program automatically determines the required input source i.e., if .fasta file is present locally, it uses that or else searches the online Entrez database.
-### In this version, it has no option for being verbose; will update.
+#### The program automatically determines the required input source i.e., if .fasta file is present locally, it uses that or else searches the online Entrez database.
+#### In this version, it has no option for being verbose; will update.
