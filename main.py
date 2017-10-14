@@ -1,4 +1,5 @@
-#!/Users/Synchon/anaconda3/bin/python3
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 '''
 © 2017 Synchon Mandal
 '''
