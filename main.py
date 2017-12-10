@@ -4,6 +4,7 @@
 © 2017 Synchon Mandal
 '''
 import os, argparse, textwrap, csv
+from os.path import join
 from operator import itemgetter
 from Bio import Entrez, SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -14,7 +15,7 @@ import matplotlib.pyplot as plt
 # global variables
 PATH = os.getcwd()
 ACCESSION_ID = ""
-CODON_LIST = ()
+CODON_TUPLE = ()
 
 def perform_search_for_accession_id(handle_id, email_id):
     '''searches the local directory /input for the .fasta file (offline) and if not found falls back to the Entrez database (online)'''
